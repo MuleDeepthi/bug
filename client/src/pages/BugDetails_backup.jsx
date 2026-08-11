@@ -1,10 +1,11 @@
-import "./BugDetails.css";
+
+
+
 import { useEffect, useState } from "react";
 
 function getRole() {
   try {
     const token = localStorage.getItem("token");
-
     if (!token) return "";
 
     return JSON.parse(atob(token.split(".")[1])).role || "";
@@ -32,7 +33,6 @@ function BugDetails({ bugId, onBack }) {
   const [activities, setActivities] = useState([]);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -41,10 +41,6 @@ function BugDetails({ bugId, onBack }) {
   const role = getRole();
 
   const canChangeStatus = ["admin", "manager", "developer"].includes(role);
-
-  // =====================================================
-  // LOAD ACTIVITIES
-  // =====================================================
 
   const loadActivities = async (token) => {
     try {
@@ -69,10 +65,6 @@ function BugDetails({ bugId, onBack }) {
     }
   };
 
-  // =====================================================
-  // LOAD COMMENTS
-  // =====================================================
-
   const loadComments = async (token) => {
     try {
       const response = await fetch(
@@ -96,15 +88,10 @@ function BugDetails({ bugId, onBack }) {
     }
   };
 
-  // =====================================================
-  // LOAD BUG DETAILS
-  // =====================================================
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError("");
 
         const token = localStorage.getItem("token");
 
@@ -148,9 +135,9 @@ function BugDetails({ bugId, onBack }) {
     }
   }, [bugId]);
 
-  // =====================================================
-  // CHANGE BUG STATUS
-  // =====================================================
+  // ===============================
+  // CHANGE STATUS
+  // ===============================
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -189,8 +176,6 @@ function BugDetails({ bugId, onBack }) {
       setBug(data.bug);
 
       await loadActivities(token);
-
-      alert("Bug status updated successfully.");
     } catch (err) {
       console.error("Status update error:", err);
       alert("Unable to connect to server.");
@@ -199,9 +184,9 @@ function BugDetails({ bugId, onBack }) {
     }
   };
 
-  // =====================================================
+  // ===============================
   // ADD COMMENT
-  // =====================================================
+  // ===============================
 
   const handleAddComment = async (e) => {
     e.preventDefault();
@@ -258,9 +243,9 @@ function BugDetails({ bugId, onBack }) {
     }
   };
 
-  // =====================================================
+  // ===============================
   // LOADING
-  // =====================================================
+  // ===============================
 
   if (loading) {
     return (
@@ -271,9 +256,9 @@ function BugDetails({ bugId, onBack }) {
     );
   }
 
-  // =====================================================
+  // ===============================
   // ERROR
-  // =====================================================
+  // ===============================
 
   if (error) {
     return (
@@ -282,19 +267,17 @@ function BugDetails({ bugId, onBack }) {
           ← Back to Bugs
         </button>
 
-        <h2>Unable to load bug</h2>
-        <p>{error}</p>
+        <div className="error-card">
+          <h2>Couldn't load bug</h2>
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
-  // =====================================================
-  // BUG NOT FOUND
-  // =====================================================
-
   if (!bug) {
     return (
-      <div className="error-state">
+      <div className="empty-state">
         <button className="back-button" onClick={onBack}>
           ← Back to Bugs
         </button>
@@ -304,38 +287,38 @@ function BugDetails({ bugId, onBack }) {
     );
   }
 
-  // =====================================================
-  // MAIN UI
-  // =====================================================
-
   return (
     <div className="bug-details-page">
 
       {/* HEADER */}
 
-      <div className="details-header">
-
+      <div className="details-topbar">
         <button className="back-button" onClick={onBack}>
           ← Back to Bugs
         </button>
 
-        <div className="details-title-row">
+        <span className="bug-id">
+          BUG #{bug._id?.slice(-6).toUpperCase()}
+        </span>
+      </div>
 
-          <div className="details-title">
+      {/* MAIN BUG CARD */}
 
-            <span className="eyebrow">
-              BUG DETAILS
-            </span>
+      <div className="bug-hero">
 
-            <h1>{bug.title}</h1>
+        <div className="bug-hero-content">
 
-            <p>
-              {bug.description || "No description provided."}
-            </p>
-
+          <div className="bug-label">
+            ISSUE TRACKER
           </div>
 
-          <div className="details-badges">
+          <h1>{bug.title}</h1>
+
+          <p className="bug-hero-description">
+            {bug.description}
+          </p>
+
+          <div className="bug-badges">
 
             <span
               className={`status-badge ${
@@ -347,8 +330,7 @@ function BugDetails({ bugId, onBack }) {
 
             <span
               className={`priority-badge ${
-                priorityClass[bug.priority] ||
-                "priority-medium"
+                priorityClass[bug.priority] || "priority-medium"
               }`}
             >
               {bug.priority || "Medium"} Priority
@@ -359,7 +341,6 @@ function BugDetails({ bugId, onBack }) {
             </span>
 
           </div>
-
         </div>
 
         {/* STATUS CONTROL */}
@@ -367,17 +348,7 @@ function BugDetails({ bugId, onBack }) {
         {canChangeStatus && (
           <div className="status-control">
 
-            <div>
-              <label>Update Bug Status</label>
-
-              <small>
-                Your role:{" "}
-                {role
-                  ? role.charAt(0).toUpperCase() +
-                    role.slice(1)
-                  : "User"}
-              </small>
-            </div>
+            <label>Update Status</label>
 
             <select
               value={bug.status || "Open"}
@@ -385,17 +356,13 @@ function BugDetails({ bugId, onBack }) {
               disabled={statusLoading}
             >
               <option value="Open">Open</option>
-              <option value="In Progress">
-                In Progress
-              </option>
-              <option value="Resolved">
-                Resolved
-              </option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
               <option value="Closed">Closed</option>
             </select>
 
             {statusLoading && (
-              <span>Updating...</span>
+              <small>Updating...</small>
             )}
 
           </div>
@@ -408,58 +375,37 @@ function BugDetails({ bugId, onBack }) {
       <div className="details-grid">
 
         <div className="info-card">
-          <span className="info-label">
-            PROJECT
-          </span>
-
-          <strong>
-            {bug.project || "—"}
-          </strong>
+          <span className="info-label">PROJECT</span>
+          <strong>{bug.project || "—"}</strong>
         </div>
 
         <div className="info-card">
-          <span className="info-label">
-            ASSIGNED TO
-          </span>
-
+          <span className="info-label">ASSIGNED TO</span>
           <strong>
-            {bug.assignedTo?.name ||
-              "Unassigned"}
+            {bug.assignedTo?.name || "Unassigned"}
           </strong>
 
           {bug.assignedTo?.email && (
-            <small>
-              {bug.assignedTo.email}
-            </small>
+            <small>{bug.assignedTo.email}</small>
           )}
         </div>
 
         <div className="info-card">
-          <span className="info-label">
-            REPORTED BY
-          </span>
-
+          <span className="info-label">REPORTED BY</span>
           <strong>
-            {bug.reportedBy?.name ||
-              "Unknown"}
+            {bug.reportedBy?.name || "Unknown"}
           </strong>
 
           {bug.reportedBy?.email && (
-            <small>
-              {bug.reportedBy.email}
-            </small>
+            <small>{bug.reportedBy.email}</small>
           )}
         </div>
 
         <div className="info-card">
-          <span className="info-label">
-            YOUR ROLE
-          </span>
-
+          <span className="info-label">YOUR ROLE</span>
           <strong>
             {role
-              ? role.charAt(0).toUpperCase() +
-                role.slice(1)
+              ? role.charAt(0).toUpperCase() + role.slice(1)
               : "User"}
           </strong>
         </div>
@@ -475,7 +421,6 @@ function BugDetails({ bugId, onBack }) {
         <section className="details-section">
 
           <div className="section-heading">
-
             <div>
               <span className="section-eyebrow">
                 DISCUSSION
@@ -487,39 +432,27 @@ function BugDetails({ bugId, onBack }) {
             <span className="count-pill">
               {comments.length}
             </span>
-
           </div>
 
           <div className="comments-list">
 
             {comments.length === 0 ? (
-
               <div className="section-empty">
-
-                <div className="empty-icon">
-                  💬
-                </div>
-
+                <div className="empty-icon">💬</div>
                 <p>No comments yet.</p>
-
                 <small>
                   Start the discussion about this bug.
                 </small>
-
               </div>
-
             ) : (
-
               comments.map((comment, index) => (
-
                 <div
                   className="comment-card"
                   key={comment._id || index}
                 >
 
                   <div className="comment-avatar">
-                    {(comment.user?.name ||
-                      "U")
+                    {(comment.user?.name || "U")
                       .charAt(0)
                       .toUpperCase()}
                   </div>
@@ -529,8 +462,7 @@ function BugDetails({ bugId, onBack }) {
                     <div className="comment-header">
 
                       <strong>
-                        {comment.user?.name ||
-                          "User"}
+                        {comment.user?.name || "User"}
                       </strong>
 
                       <span>
@@ -550,9 +482,7 @@ function BugDetails({ bugId, onBack }) {
                   </div>
 
                 </div>
-
               ))
-
             )}
 
           </div>
@@ -609,58 +539,43 @@ function BugDetails({ bugId, onBack }) {
           <div className="activity-list">
 
             {activities.length === 0 ? (
-
               <div className="section-empty">
-
-                <div className="empty-icon">
-                  ◷
-                </div>
-
+                <div className="empty-icon">◷</div>
                 <p>No activity recorded.</p>
-
               </div>
-
             ) : (
+              activities.map((activity, index) => (
+                <div
+                  className="activity-item"
+                  key={activity._id || index}
+                >
 
-              activities.map(
-                (activity, index) => (
+                  <div className="activity-dot"></div>
 
-                  <div
-                    className="activity-item"
-                    key={
-                      activity._id || index
-                    }
-                  >
+                  <div className="activity-content">
 
-                    <div className="activity-dot"></div>
+                    <strong>
+                      {activity.action ||
+                        "Activity"}
+                    </strong>
 
-                    <div className="activity-content">
+                    <p>
+                      {activity.details ||
+                        "No details available."}
+                    </p>
 
-                      <strong>
-                        {activity.action ||
-                          "Activity"}
-                      </strong>
-
-                      <p>
-                        {activity.details ||
-                          "No details available."}
-                      </p>
-
-                      <small>
-                        {activity.createdAt
-                          ? new Date(
-                              activity.createdAt
-                            ).toLocaleString()
-                          : ""}
-                      </small>
-
-                    </div>
+                    <small>
+                      {activity.createdAt
+                        ? new Date(
+                            activity.createdAt
+                          ).toLocaleString()
+                        : ""}
+                    </small>
 
                   </div>
 
-                )
-              )
-
+                </div>
+              ))
             )}
 
           </div>
