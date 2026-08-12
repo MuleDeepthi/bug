@@ -17,6 +17,13 @@ function CreateBug() {
   const [error, setError] = useState("");
 
   // ==========================================
+  // MILESTONE 2 - DEVELOPER SUGGESTION
+  // ==========================================
+
+  const [suggestingDeveloper, setSuggestingDeveloper] = useState(false);
+  const [suggestion, setSuggestion] = useState(null);
+
+  // ==========================================
   // LOAD DEVELOPERS
   // ==========================================
 
@@ -68,6 +75,74 @@ function CreateBug() {
       ...previous,
       [e.target.name]: e.target.value,
     }));
+
+    // If user manually changes developer,
+    // remove the previous automatic suggestion.
+    if (e.target.name === "assignedTo") {
+      setSuggestion(null);
+    }
+  };
+
+  // ==========================================
+  // MILESTONE 2
+  // SUGGEST DEVELOPER
+  // ==========================================
+
+  const handleSuggestDeveloper = async () => {
+    try {
+      setSuggestingDeveloper(true);
+      setError("");
+      setMessage("");
+      setSuggestion(null);
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("You are not logged in.");
+        return;
+      }
+
+      const response = await fetch(
+        "http://localhost:5000/api/assignments/suggest-developer",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(
+          data.message || "Failed to get developer suggestion"
+        );
+        return;
+      }
+
+      const recommendedDeveloper =
+        data.recommendation?.developer;
+
+      if (!recommendedDeveloper) {
+        setError("No developer recommendation available.");
+        return;
+      }
+
+      // Store recommendation
+      setSuggestion(data.recommendation);
+
+      // Automatically select suggested developer
+      setFormData((previous) => ({
+        ...previous,
+        assignedTo: recommendedDeveloper._id,
+      }));
+    } catch (err) {
+      console.error("Developer suggestion error:", err);
+      setError("Unable to get developer suggestion.");
+    } finally {
+      setSuggestingDeveloper(false);
+    }
   };
 
   // ==========================================
@@ -117,6 +192,7 @@ function CreateBug() {
 
       setMessage("Bug created and assigned successfully!");
 
+      // Clear form
       setFormData({
         title: "",
         description: "",
@@ -126,6 +202,8 @@ function CreateBug() {
         assignedTo: "",
         dueDate: "",
       });
+
+      setSuggestion(null);
     } catch (err) {
       console.error("Create bug error:", err);
       setError("Unable to connect to server.");
@@ -255,6 +333,19 @@ function CreateBug() {
             <div className="form-field">
               <label>ASSIGN TO</label>
 
+              <button
+                type="button"
+                className="suggest-button"
+                onClick={handleSuggestDeveloper}
+                disabled={
+                  suggestingDeveloper || loadingDevelopers
+                }
+              >
+                {suggestingDeveloper
+                  ? "Finding Developer..."
+                  : "✨ Suggest Developer"}
+              </button>
+
               <select
                 className="form-control"
                 name="assignedTo"
@@ -277,6 +368,18 @@ function CreateBug() {
                   </option>
                 ))}
               </select>
+
+              {/* SHOW RECOMMENDATION */}
+
+              {suggestion?.developer && (
+                <small className="suggestion-text">
+                  Suggested:{" "}
+                  <strong>
+                    {suggestion.developer.name}
+                  </strong>{" "}
+                  ({suggestion.activeBugCount} active bugs)
+                </small>
+              )}
             </div>
 
             {/* DUE DATE */}
