@@ -27,7 +27,7 @@ const bugSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Open", "In Progress", "Resolved", "Closed"],
+      enum: ["Open", "In Progress", "In Review", "Resolved"],
       default: "Open",
     },
 
@@ -52,6 +52,34 @@ const bugSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // =====================================================
+    // FILE ATTACHMENTS
+    // =====================================================
+
+    attachments: [
+      {
+        originalName: {
+          type: String,
+          required: true,
+        },
+
+        fileName: {
+          type: String,
+          required: true,
+        },
+
+        filePath: {
+          type: String,
+          required: true,
+        },
+
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

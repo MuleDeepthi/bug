@@ -66,7 +66,7 @@ router.post(
 router.put(
   "/:id/status",
   authMiddleware,
-  roleMiddleware("admin", "manager", "developer"),
+  roleMiddleware("admin", "manager", "developer","tester"),
   updateBugStatus
 );
 

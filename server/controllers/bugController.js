@@ -271,10 +271,12 @@ const getAssignedBugs = async (req, res) => {
     });
   }
 };
-
 // =====================================================
 // UPDATE BUG STATUS
+// Workflow:
+// Open -> In Progress -> In Review -> Resolved
 // =====================================================
+
 const updateBugStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -283,26 +285,18 @@ const updateBugStatus = async (req, res) => {
     const allowedStatuses = [
       "Open",
       "In Progress",
+      "In Review",
       "Resolved",
-      "Closed",
     ];
 
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({
         message: "Invalid status",
+        allowedStatuses,
       });
     }
 
-    const bug = await Bug.findByIdAndUpdate(
-      id,
-      { status },
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .populate("reportedBy", "name email role")
-      .populate("assignedTo", "name email role");
+    const bug = await Bug.findById(id);
 
     if (!bug) {
       return res.status(404).json({
@@ -310,18 +304,53 @@ const updateBugStatus = async (req, res) => {
       });
     }
 
-    // Create activity
+    // =====================================================
+    // VALID STATE TRANSITIONS
+    // =====================================================
+
+    const validTransitions = {
+      "Open": ["In Progress"],
+      "In Progress": ["In Review"],
+      "In Review": ["Resolved"],
+      "Resolved": [],
+    };
+
+    const currentStatus = bug.status;
+
+    if (!validTransitions[currentStatus].includes(status)) {
+      return res.status(400).json({
+        message: `Invalid status transition: ${currentStatus} -> ${status}`,
+        currentStatus,
+        allowedNextStatuses: validTransitions[currentStatus],
+      });
+    }
+
+    // Update status
+    bug.status = status;
+    await bug.save();
+
+    // Populate users
+    await bug.populate("reportedBy", "name email role");
+    await bug.populate("assignedTo", "name email role");
+
+    // =====================================================
+    // ACTIVITY HISTORY
+    // =====================================================
+
     await Activity.create({
       bug: bug._id,
       user: req.user.id,
       action: "Status Updated",
-      details: `Bug status changed to "${status}".`,
+      details: `Bug status changed from "${currentStatus}" to "${status}".`,
     });
 
     res.status(200).json({
       message: "Bug status updated successfully",
+      previousStatus: currentStatus,
+      newStatus: status,
       bug,
     });
+
   } catch (error) {
     console.error("Update bug status error:", error);
 
@@ -330,7 +359,6 @@ const updateBugStatus = async (req, res) => {
     });
   }
 };
-
 // =====================================================
 // EXPORT
 // =====================================================
